@@ -45,7 +45,7 @@ logger = logging.getLogger()
 
 nlp = spacy.load("en_core_web_sm")
 
-
+# Split input into words in original forms (lemmas)
 def split_string(input_string, ignore_tokens=set([","])):
     doc = nlp(input_string)
     word_list = []
@@ -58,6 +58,7 @@ def split_string(input_string, ignore_tokens=set([","])):
 def is_equal(token1, token2):
     return token1.lower() == token2.lower()
 
+# Load original/compressed dataset from meetingbank
 origins, comps = [], []
 meeting_bank_comp = load_dataset(args.load_prompt_from, split="train")
 for i, sample in enumerate(meeting_bank_comp):
@@ -80,8 +81,10 @@ alignment_gap_avg = 0
 
 for chunk_idx, (origin, comp) in tqdm(enumerate(zip(origins, comps))):
     num_sample += 1
+    # Split both inputs into a list of tokens
     origin_tokens = split_string(origin)
     comp_tokens = split_string(comp)
+    # Get all unique tokens in original prompt for calculation
     origin_tokens_set = set(origin_tokens)
     for token in origin_tokens:
         origin_tokens_set.add(token.lower())

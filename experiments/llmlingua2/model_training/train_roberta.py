@@ -29,7 +29,7 @@ parser.add_argument(
 parser.add_argument(
     "--data_path",
     help="training and validation data path",
-    default="../../../results/meetingbank/gpt-4-32k_comp/annotation_kept_cs512_meetingbank_train_formated.pt",
+    default="../results/meetingbank/gpt-4-32k_comp/annotation_kept_cs512_meetingbank_train_formated.pt",
 )
 parser.add_argument(
     "--label_type",
@@ -164,8 +164,9 @@ def test(model, eval_dataloader):
     return eval_accuracy
 
 
-device = "cuda" if cuda.is_available() else "cpu"
-data = torch.load(args.data_path)
+device = "mps" if torch.backends.mps.is_available() else "cpu"
+print(device)
+data = torch.load(args.data_path, weights_only=False)
 
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 model = AutoModelForTokenClassification.from_pretrained(
