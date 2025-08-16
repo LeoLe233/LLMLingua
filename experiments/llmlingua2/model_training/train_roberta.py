@@ -46,7 +46,7 @@ parser.add_argument("--lr", help="learning rate", default=1e-5, type=float)
 parser.add_argument(
     "--num_epoch", help="number of training epoch", default=10, type=int
 )
-parser.add_argument("--batch_size", type=int, default=10)
+parser.add_argument("--batch_size", type=int, default=1)
 
 args = parser.parse_args()
 os.makedirs(os.path.dirname(args.save_path), exist_ok=True)
@@ -61,18 +61,18 @@ def train(epoch):
 
     for idx, batch in enumerate(train_dataloader):
         t = time.time()
-        ids = batch["ids"].to(device, dtype=torch.long)
-        mask = batch["mask"].to(device, dtype=torch.long)
-        targets = batch["targets"].to(device, dtype=torch.long)
+        ids = batch["ids"].to(device, dtype=torch.long) # Tokenized inputs
+        mask = batch["mask"].to(device, dtype=torch.long) # Mask for padding
+        targets = batch["targets"].to(device, dtype=torch.long) # Ground truth labels
 
         outputs = model(input_ids=ids, attention_mask=mask, labels=targets)
-        loss, tr_logits = outputs.loss, outputs.logits
-        tr_loss += loss.item()
+        loss, tr_logits = outputs.loss, outputs.logits 
+        tr_loss += loss.item() # Calculate cross entropy
 
         nb_tr_steps += 1
         nb_tr_examples += targets.size(0)
 
-        flattened_targets = targets.view(-1)
+        flattened_targets = targets.view(-1) # Flatten tensor from [batch_size, length] to [batch_size*length]
         active_logits = tr_logits.view(-1, model.num_labels)
         flattened_predictions = torch.argmax(active_logits, axis=1)
         active_accuracy = mask.view(-1) == 1
@@ -163,17 +163,20 @@ def test(model, eval_dataloader):
 
     return eval_accuracy
 
-
+# Setting training device - cuda (NVIDIA GPU) mps (Apple M chips) cpu
+# Torch does not support AMD GPU (ROCm) on Windows, only on linux
 device = "mps" if torch.backends.mps.is_available() else "cpu"
 print(device)
 data = torch.load(args.data_path, weights_only=False)
 
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 model = AutoModelForTokenClassification.from_pretrained(
+    # num_label = 2 -> keep or remove token
     args.model_name, num_labels=2, ignore_mismatched_sizes=True
 )
 model.to(device)
 
+# 80% Training, 20% Validation data
 assert len(data["origin"]) == len(data["labels"])
 text_label = [(text, label) for text, label in zip(data["origin"], data["labels"])]
 random.shuffle(text_label)
