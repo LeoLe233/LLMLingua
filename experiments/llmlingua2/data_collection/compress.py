@@ -83,14 +83,17 @@ tokenizer = tiktoken.encoding_for_model("gpt-4")
 def chunk_origin(origin_text):
     origin_list = []
     origin_token_ids = tokenizer.encode(origin_text)
+    # End of sentence/line tokens
     end_token_ids = set(tokenizer.encode(".") + tokenizer.encode("\n"))
     n = len(origin_token_ids)
     st = 0
     while st < n:
+        # chunk_size too big, tokenize entire input
         if st + args.chunk_size > n - 1:
             chunk = tokenizer.decode(origin_token_ids[st:n])
             origin_list.append(chunk)
             break
+        # Try to chunk at end of paragraph
         else:
             ed = st + args.chunk_size
             for j in range(0, ed - st):
@@ -102,7 +105,7 @@ def chunk_origin(origin_text):
             st = ed + 1
     return origin_list
 
-
+# Use tqdm for progress tracking
 for sample in tqdm(data):
     idx = int(sample["idx"])
     origin = copy.deepcopy(sample[args.load_key])
@@ -113,13 +116,16 @@ for sample in tqdm(data):
         continue
 
     t = time.time()
+    # Compress using (long)llmlingua
     if args.compressor == "llmlingua" or args.compressor == "longllmlingua":
         comp_dict = compressor.compress_prompt(
             origin, ratio=args.compression_rate, target_token=args.n_target_token
         )
         comp = comp_dict["compressed_prompt"]
+    
+    # Compress using selective context/lingua2    
     else:
-        # multi document
+        # multi document, chunk each document and put in long list
         if isinstance(origin, list):
             if args.chunk_size > 0:
                 chunk_list = []
@@ -127,7 +133,7 @@ for sample in tqdm(data):
                     ori_list = chunk_origin(document)
                     chunk_list.extend(ori_list)
                 origin = chunk_list
-        # single document
+        # single document, chunk and turn into a long list
         else:
             origin = [origin]
             if args.chunk_size > 0:
@@ -149,6 +155,7 @@ for sample in tqdm(data):
                 comp, reduced = compressor(
                     chunk, reduce_ratio=reduce_ratio, reduce_level="token"
                 )
+                # Remove special tokens
                 comp = comp.replace("<s>", "").replace("</s>", "")
             comp_list.append(comp)
         assert len(origin) == len(comp_list)

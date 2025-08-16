@@ -93,21 +93,25 @@ for chunk_idx, (origin, comp) in tqdm(enumerate(zip(origins, comps))):
     prev_idx = 0
     back_cnt = 0
     num_origin_tokens = len(origin_tokens)
+    # Initialize all labels as false
     labels = [False] * num_origin_tokens
     for token in comp_tokens:
         flag = False
+        # See if token is found in original set
         if token in origin_tokens_set or token.lower() in origin_tokens_set:
             num_find += 1
+        # Try to find tokens in corresponding indices using sliding window
         for i in range(args.window_size):
-            # look forward
+            # look forward, prevent indexOutOfBound
             token_idx = min(prev_idx + i, num_origin_tokens - 1)
             if is_equal(origin_tokens[token_idx], token) and not labels[token_idx]:
                 labels[token_idx] = True
-                # window do not go too fast
+                # window do not go too fast, heuristic approach?
                 if token_idx - prev_idx > args.window_size // 2:
                     prev_idx += args.window_size // 2
                 else:
                     prev_idx = token_idx
+                # For debugging
                 if args.verbose:
                     print(
                         token,
@@ -131,13 +135,15 @@ for chunk_idx, (origin, comp) in tqdm(enumerate(zip(origins, comps))):
                     )
                 flag = True
                 break
-
+            
+    # Collect all original tokens labeled True
     retrieval_tokens = []
     for idx, token in enumerate(origin_tokens):
         if labels[idx]:
             retrieval_tokens.append(token)
     retrieval = " ".join(retrieval_tokens)
 
+    # Calculate the metrics
     comp_rate = len(comp_tokens) / len(origin_tokens)
     if len(comp_tokens) > 0:
         find_rate = num_find / len(comp_tokens)
@@ -201,7 +207,6 @@ for chunk_idx, (origin, comp) in tqdm(enumerate(zip(origins, comps))):
         json.dump(res, open(args.save_path, "w"), indent=4)
         torch.save(res_pt, args.save_path.replace(".json", ".pt"))
 
-json.dump(res, open(args.save_path, "w"), indent=4)
 torch.save(res_pt, args.save_path.replace(".json", ".pt"))
 
 compression_rate_avg = compression_rate_avg / num_sample

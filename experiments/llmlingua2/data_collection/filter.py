@@ -38,6 +38,7 @@ for labels, origin, comp, retrieval, cr, vr, hr, mr, ag in zip(
     res_pt["matching_rate"],
     res_pt["alignment_gap"],
 ):
+    # >0.9 variation after compression, possibly hallucinations, filter
     if vr >= threshold:
         filtered["labels"].append(labels)
         filtered["origin"].append(origin)
@@ -73,6 +74,7 @@ for labels, origin, comp, retrieval, cr, vr, hr, mr, ag in zip(
     kept["matching_rate"],
     kept["alignment_gap"],
 ):
+    # >0.9 alignment gap, poor annotation, filter out
     if ag >= threshold:
         filtered["labels"].append(labels)
         filtered["origin"].append(origin)
