@@ -53,26 +53,26 @@ os.makedirs(os.path.dirname(args.save_path), exist_ok=True)
 writer = SummaryWriter(log_dir=os.path.dirname(args.save_path).replace("model", "log"))
 
 
-def train(epoch):
-    tr_loss, tr_accuracy = 0, 0
-    nb_tr_examples, nb_tr_steps = 0, 0
-    tr_preds, tr_labels = [], []
-    model.train()
+def train(epoch): # More epochs, better result
+    tr_loss, tr_accuracy = 0, 0 # Less loss, better accuracy
+    nb_tr_examples, nb_tr_steps = 0, 0 # number of training 
+    tr_preds, tr_labels = [], [] # training prediction, labels
+    model.train() # Prepare model for training
 
     for idx, batch in enumerate(train_dataloader):
-        t = time.time()
+        t = time.time() # Track elapsed time
         ids = batch["ids"].to(device, dtype=torch.long) # Tokenized inputs
         mask = batch["mask"].to(device, dtype=torch.long) # Mask for padding
         targets = batch["targets"].to(device, dtype=torch.long) # Ground truth labels
 
-        outputs = model(input_ids=ids, attention_mask=mask, labels=targets)
-        loss, tr_logits = outputs.loss, outputs.logits 
-        tr_loss += loss.item() # Calculate cross entropy
+        outputs = model(input_ids=ids, attention_mask=mask, labels=targets) # model output
+        loss, tr_logits = outputs.loss, outputs.logits # 
+        tr_loss += loss.item() # Calculate cross entropy loss
 
         nb_tr_steps += 1
-        nb_tr_examples += targets.size(0)
+        nb_tr_examples += targets.size(0) # Number of examples
 
-        flattened_targets = targets.view(-1) # Flatten tensor from [batch_size, length] to [batch_size*length]
+        flattened_targets = targets.view(-1) # Flatten tensor from [batch_size, length] to [batch_size*length]， match size
         active_logits = tr_logits.view(-1, model.num_labels)
         flattened_predictions = torch.argmax(active_logits, axis=1)
         active_accuracy = mask.view(-1) == 1

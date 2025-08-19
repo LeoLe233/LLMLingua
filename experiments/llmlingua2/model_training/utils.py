@@ -49,6 +49,11 @@ class TokenClfDataset(Dataset):
             )
             assert len(tokenized_text) == len(labels)
             labels.insert(0, False)
+            
+            
+            # Filter -> LLM or Summarize -> LLM
+            # Filter a lot  Summarize -> LLM
+            
             labels.insert(-1, False)
         else:
             tokenized_text = self.tokenizer.tokenize(text)
